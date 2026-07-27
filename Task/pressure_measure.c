@@ -21,14 +21,21 @@ static bool s_adc_conversion_running; // ADC 转换正在进行标志，避免�
 static float s_pressure_mpa; // 当前有效压力值，单位 MPa
 static float s_signal_voltage; // 当前有效信号电压值，单位 V
 static float s_vdda; // 当前有效 VDDA 电源电压值，单位 V
+static uint16_t s_signal_adc_code; // 十路压力信号去极值平均后的 ADC 码值
+static uint16_t s_vrefint_adc_code; // ADC 读取内部 VREFINT 的原始码值
 
 /* 启动一轮 11 通道 ADC DMA 扫描。 */
-static void PressureMeasure_StartConversion(void)
+static void PressureMeasure_StartConversion(void)// 启动 ADC 转换
 {
-    s_adc_conversion_complete = false;
-    if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)s_adc_dma_buffer, PRESSURE_ADC_SCAN_LENGTH) == HAL_OK)
+    s_adc_conversion_complete = false;// 清除 DMA 完成标志
+    if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)s_adc_dma_buffer, PRESSURE_ADC_SCAN_LENGTH) == HAL_OK)// 启动 ADC1 的 DMA 扫描，结果存入 s_adc_dma_buffer
     {
-        s_adc_conversion_running = true;
+        __HAL_DMA_DISABLE_IT(&hdma_adc1, DMA_IT_HT);// 禁用 ADC DMA 半传输中断，避免干扰
+        s_adc_conversion_running = true;// DMA 已成功启动，等待转换完成回调。
+    }
+    else
+    {
+        s_adc_conversion_running = false;// 启动失败，下一次周期任务会再次尝试启动。
     }
 }
 
@@ -56,6 +63,8 @@ void PressureMeasure_Init(void)
     s_pressure_mpa = 0.0f;
     s_signal_voltage = 0.0f;
     s_vdda = 0.0f;
+    s_signal_adc_code = 0U;
+    s_vrefint_adc_code = 0U;
 
     if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK)
     {
@@ -89,6 +98,8 @@ bool PressureMeasure_Process(void)
     /* 去掉十路采样中的两个最大值和两个最小值，再求中间六路平均值。 */
     signal_code = Pressure_CalculateRobustCode(s_adc_dma_buffer, PRESSURE_ADC_CHANNEL_COUNT);
     vrefint_code = s_adc_dma_buffer[PRESSURE_ADC_CHANNEL_COUNT];
+    s_signal_adc_code = signal_code;
+    s_vrefint_adc_code = vrefint_code;
     if (vrefint_code != 0U)
     {
         /* 利用内部基准反推本次实际 VDDA，降低 3.3V 电源误差的影响。 */
@@ -119,6 +130,16 @@ float PressureMeasure_GetSignalVoltage(void)
 float PressureMeasure_GetVdda(void)
 {
     return s_vdda;
+}
+
+uint16_t PressureMeasure_GetSignalAdcCode(void)
+{
+    return s_signal_adc_code;
+}
+
+uint16_t PressureMeasure_GetVrefintAdcCode(void)
+{
+    return s_vrefint_adc_code;
 }
 
 uint16_t Pressure_CalculateRobustCode(const uint16_t *samples, uint32_t count)

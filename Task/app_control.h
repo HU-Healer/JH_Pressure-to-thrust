@@ -12,6 +12,8 @@ void AppControl_Process(void);
 float AppControl_GetCylinderDiameterMm(void);
 float AppControl_GetPressureMpa(void);
 float AppControl_GetThrustValue(void);
+/* 获取未转换单位的推力，单位为 N。 */
+float AppControl_GetForceNewton(void);
 ThrustUnit AppControl_GetUnit(void);
 /* 设置缸径，返回 true 表示通过范围检查。 */
 bool AppControl_SetCylinderDiameter(float diameter_mm);

@@ -30,6 +30,7 @@
 
 #include "Vofa_send.h"
 #include "app_control.h"
+#include "pressure_measure.h"
 
 /* USER CODE END Includes */
 
@@ -97,9 +98,9 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_USART1_UART_Init();
-  MX_USART3_UART_Init();
   MX_CAN_Init();
   MX_I2C1_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* 初始化压力测量、推力计算状态和屏幕 DMA 接收。 */
@@ -116,6 +117,32 @@ int main(void)
     /* USER CODE BEGIN 3 */
     /* 应用层周期任务：读取压力、计算推力并刷新屏幕。 */
     AppControl_Process();
+
+    /* 每 100ms 通过 USART3 DMA 向 VOFA 发送一次 16 个浮点数。 */
+    static uint32_t last_vofa_tick = 0U;
+    if ((uint32_t)(HAL_GetTick() - last_vofa_tick) >= 100U)
+    {
+      last_vofa_tick = HAL_GetTick();
+      Vofa_Send_Data16(
+        PressureMeasure_GetVdda(),                         /* CH0: 实际 VDDA，单位 V */
+        (float)PressureMeasure_GetSignalAdcCode(),        /* CH1: 压力信号平均 ADC 码值 */
+        PressureMeasure_GetSignalVoltage(),                /* CH2: 压力信号电压，单位 V */
+        AppControl_GetPressureMpa(),                       /* CH3: 油压，单位 MPa */
+        AppControl_GetCylinderDiameterMm(),                /* CH4: 油缸缸径，单位 mm */
+        AppControl_GetForceNewton(),                       /* CH5: 推力，单位 N */
+        AppControl_GetThrustValue(),                       /* CH6: 当前显示单位下的推力 */
+        (float)AppControl_GetUnit(),                       /* CH7: 单位编号，0=kg，1=吨，2=N */
+        0.0f,                                              /* CH8: 保留 */
+        0.0f,                                              /* CH9: 保留 */
+        0.0f,                                              /* CH10: 保留 */
+        0.0f,                                              /* CH11: 保留 */
+        0.0f,                                              /* CH12: 保留 */
+        0.0f,                                              /* CH13: 保留 */
+        0.0f,                                              /* CH14: 保留 */
+        0.0f                                               /* CH15: 保留 */
+      );
+    }
+
   }
   /* USER CODE END 3 */
 }

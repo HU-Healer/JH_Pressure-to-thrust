@@ -107,6 +107,11 @@ float AppControl_GetThrustValue(void)
     return s_thrust_value;
 }
 
+float AppControl_GetForceNewton(void)
+{
+    return s_force_newton;
+}
+
 ThrustUnit AppControl_GetUnit(void)
 {
     return s_unit;
