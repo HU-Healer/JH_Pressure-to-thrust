@@ -44,7 +44,10 @@ JH_Pressure to thrust/
 | 采样电阻 | 150R，0.1% |
 | 采样电压 | 4mA=0.6V，20mA=3.0V |
 | 模拟缓冲 | OPA333 电压跟随器 |
+<<<<<<< HEAD
 | 3.3V LDO | TLV75733PDBVR |
+=======
+>>>>>>> 3113945ffa1c561bc7328ede6b7f3f74eb2c63fa
 | ADC | ADC1 IN0-IN9，加内部 VREFINT |
 | 串口屏 | USART1，PA9 TX、PA10 RX、115200、8N1、DMA |
 | 调试串口 | USART3，115200、DMA、VOFA JustFloat |
